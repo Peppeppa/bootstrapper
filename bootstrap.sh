@@ -48,8 +48,19 @@ trim() {
 }
 
 is_omarchy() {
-  :contentReference[oaicite:1]{index=1}share/omarchy ]] ||
-    [[ -d "$HOME/.local/share/omarchy" ]]
+  if command -v omarchy >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ -d "/usr/share/omarchy" ]]; then
+    return 0
+  fi
+
+  if [[ -d "$HOME/.local/share/omarchy" ]]; then
+    return 0
+  fi
+
+  return 1
 }
 
 managed_source() {
