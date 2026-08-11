@@ -5,6 +5,11 @@ set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES_FILE="$ROOT/packages.txt"
 BACKUP_ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/bootstrapper/backups"
+MANAGED_DIRECTORIES=(
+  "$HOME/repos/peppeppa"
+  "$HOME/repos/var"
+  "$HOME/repos/eternalpingdom"
+)
 
 MODE="${1:-check}"
 DEVIATIONS=0
@@ -45,6 +50,48 @@ trim() {
   value="${value%"${value##*[![:space:]]}"}"
 
   printf '%s' "$value"
+}
+
+check_directories() {
+  local directory
+
+  for directory in "${MANAGED_DIRECTORIES[@]}"; do
+    if [[ -d "$directory" ]]; then
+      printf '  ✓ %s\n' "$directory"
+    else
+      printf '  ✗ %s missing\n' "$directory"
+      ((DEVIATIONS += 1))
+    fi
+  done
+}
+
+apply_directories() {
+  local directory
+
+  for directory in "${MANAGED_DIRECTORIES[@]}"; do
+    if [[ -d "$directory" ]]; then
+      printf '  ✓ %s\n' "$directory"
+      continue
+    fi
+
+    mkdir -p -- "$directory"
+
+    printf '  → %s created\n' "$directory"
+    ((CHANGES += 1))
+  done
+}
+
+handle_directories() {
+  section "Directories"
+
+  case "$MODE" in
+  check | diff)
+    check_directories
+    ;;
+  apply)
+    apply_directories
+    ;;
+  esac
 }
 
 is_omarchy() {
@@ -326,6 +373,7 @@ reload_hyprland() {
   fi
 }
 
+handle_directories
 handle_config "$MODE"
 handle_packages
 reload_hyprland
