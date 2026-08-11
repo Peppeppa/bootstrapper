@@ -48,7 +48,7 @@ trim() {
 }
 
 is_omarchy() {
-  command -v omarchy >/dev/null 2>&1 ||
+  :contentReference[oaicite:1]{index=1}share/omarchy ]] ||
     [[ -d "$HOME/.local/share/omarchy" ]]
 }
 
