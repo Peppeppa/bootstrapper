@@ -34,8 +34,7 @@ rebind("SUPER + G", "WhatsApp", {
 	focus = true,
 })
 
-rebind("SUPER + SHIFT + G", "Toggle floating/tiling", hl.dsp.window.toggle_floating())
-
+rebind("SUPER + SHIFT + G", "Toggle floating/tiling", hl.dsp.window.float({ action = "toggle" }))
 rebind("SUPER + T", "Terminal", { launch = "ghostty" })
 
 rebind("SUPER + W", "Obsidian", {
