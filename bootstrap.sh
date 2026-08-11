@@ -302,8 +302,8 @@ apply_packages() {
 
   printf '  → installing: %s\n' "${MISSING_PACKAGES[*]}"
 
-  if command -v omarchy-pkg-add >/dev/null 2>&1; then
-    omarchy-pkg-add "${MISSING_PACKAGES[@]}"
+  if command -v omarchy >/dev/null 2>&1; then
+    omarchy pkg add "${MISSING_PACKAGES[@]}"
   else
     sudo pacman -S --needed --noconfirm "${MISSING_PACKAGES[@]}"
   fi
