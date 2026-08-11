@@ -343,6 +343,11 @@ handle_config() {
   fi
 
   "$handler" \
+    "Chromium flags" \
+    "$ROOT/config/chromium/chromium-flags.conf" \
+    "$HOME/.config/chromium-flags.conf" || true
+
+  "$handler" \
     "Neovim keymaps" \
     "$ROOT/config/nvim/keymaps.lua" \
     "$HOME/.config/nvim/lua/config/keymaps.lua" || true
