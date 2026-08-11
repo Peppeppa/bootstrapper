@@ -334,6 +334,10 @@ handle_config() {
       "Omarchy bindings" \
       "$ROOT/config/omarchy/bindings.lua" \
       "$HOME/.config/hypr/bindings.lua" || true
+    "$handler" \
+      "Omarchy input" \
+      "$ROOT/config/omarchy/input.lua" \
+      "$HOME/.config/hypr/input.lua" || true
   else
     echo "  - Omarchy bindings skipped (Omarchy not detected)"
   fi
