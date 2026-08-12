@@ -1,0 +1,219 @@
+# Bootstrapper
+
+Small bootstrap script for setting up a fresh Arch Linux / Omarchy system.
+
+The idea is simple:
+
+```text
+fresh install
+→ install packages
+→ configure Bitwarden
+→ use Bitwarden SSH agent
+→ clone private repos
+→ apply dotfiles with GNU Stow
+```
+
+The bootstrapper itself is public and does not contain private configuration or secrets.
+
+## Usage
+
+On a fresh system:
+
+```bash
+curl -fsSL \
+  https://raw.githubusercontent.com/<USER>/<REPO>/main/install.sh \
+  | bash
+```
+
+The installer clones the repository to:
+
+```text
+~/.local/share/bootstrapper
+```
+
+and runs `bootstrap.sh`.
+
+After the first setup the bootstrapper also creates:
+
+```bash
+update-config
+```
+
+which can be used to update the system later.
+
+## What it does
+
+The script currently:
+
+* creates some required directories
+* installs packages from the Arch repositories
+* installs selected AUR packages
+* configures the Bitwarden CLI for a self-hosted server
+* waits for the Bitwarden SSH agent
+* clones or updates private Git repositories
+* applies dotfiles with GNU Stow
+* reloads Hyprland after applying the configuration
+
+## Bitwarden and SSH
+
+SSH keys are stored in Bitwarden instead of directly in this repository.
+
+Bitwarden Desktop provides the key through its SSH agent.
+
+Recommended settings:
+
+```text
+Show tray icon                 enabled
+Close to tray                  enabled
+Start to tray                  enabled
+Start automatically on login   enabled
+
+Vault timeout                  On restart
+Vault timeout action           Lock
+
+Enable SSH agent               enabled
+Ask for authorization          Never
+```
+
+The expected socket on Linux is:
+
+```text
+~/.bitwarden-ssh-agent.sock
+```
+
+An SSH config like this can be managed through the dotfiles repository:
+
+```sshconfig
+Host *
+    IdentityAgent ~/.bitwarden-ssh-agent.sock
+```
+
+This allows Git and SSH to use the key from Bitwarden without storing the private key in `~/.ssh/id_ed25519`.
+
+## Dotfiles
+
+Personal configuration is kept in a separate private dotfiles repository.
+
+GNU Stow is used to link the configuration into `$HOME`.
+
+Example structure:
+
+```text
+dotfiles/
+├── chromium/
+├── nvim/
+├── omarchy/
+├── ssh/
+├── homepage/
+├── stow-packages.txt
+└── update-stow-manifest.sh
+```
+
+The file:
+
+```text
+stow-packages.txt
+```
+
+defines which directories should be managed by Stow.
+
+Example:
+
+```text
+chromium
+nvim
+omarchy
+ssh
+```
+
+Folders such as `homepage` can stay in the repository without being Stowed.
+
+## Packages
+
+Normal Arch packages are stored in:
+
+```text
+packages.txt
+```
+
+AUR packages are stored separately in:
+
+```text
+aur-packages.txt
+```
+
+## Commands
+
+Check the current state without applying changes:
+
+```bash
+./bootstrap.sh check
+```
+
+Show more information about differences:
+
+```bash
+./bootstrap.sh diff
+```
+
+Apply the configuration:
+
+```bash
+./bootstrap.sh apply
+```
+
+or simply:
+
+```bash
+./bootstrap.sh
+```
+
+## Updating
+
+After the first setup:
+
+```bash
+update-config
+```
+
+This runs the public installer again.
+
+Existing repositories are updated instead of cloned again, installed packages are skipped, and Stow is reapplied.
+
+## Development
+
+Before pushing changes:
+
+```bash
+bash -n bootstrap.sh
+bash -n install.sh
+```
+
+Then test without changing anything:
+
+```bash
+./bootstrap.sh check
+```
+
+And finally:
+
+```bash
+./bootstrap.sh apply
+```
+
+## Security
+
+Do not put secrets in this repository.
+
+Especially avoid committing:
+
+* private SSH keys
+* passwords
+* tokens
+* certificates
+* `.env` files with credentials
+
+Private configuration belongs in private repositories.
+
+The bootstrapper should only contain the code needed to get a fresh system into a usable state.
+
