@@ -3,3 +3,4 @@ bitwarden-cli
 ghostty
 nextcloud-client
 thunderbird
+stow
