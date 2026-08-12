@@ -26,7 +26,7 @@ MANAGED_DIRECTORIES=(
 
 PRIVATE_REPOS=(
   "dotfiles-stow|git@github.com:Peppeppa/dotfiles-stow.git|$REPOS_ROOT/dotfiles-stow"
-  "wallpaper|git@github.com:Peppeppa/wallpaper.git|$REPOS_ROOT/wallpaper"
+  "wallpaper|https://github.com/dharmx/walls.git|$REPOS_ROOT/wallpaper"
 )
 
 DEVIATIONS=0
