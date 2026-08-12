@@ -4,3 +4,4 @@ ghostty
 nextcloud-client
 thunderbird
 stow
+openssh
