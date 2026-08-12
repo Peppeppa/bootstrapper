@@ -8,12 +8,15 @@ set -euo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES_FILE="$ROOT/packages.txt"
+AUR_PACKAGES_FILE="$ROOT/aur-packages.txt"
 MODE="${1:-apply}"
 
 REPOS_ROOT="$HOME/repos/peppeppa"
 DOTFILES_DIR="$REPOS_ROOT/dotfiles-stow"
 STOW_MANIFEST="$DOTFILES_DIR/stow-packages.txt"
 BITWARDEN_SOCKET="$HOME/.bitwarden-ssh-agent.sock"
+UPDATE_ALIAS_NAME="update-config"
+UPDATE_ALIAS_COMMAND="curl -fsSL https://raw.githubusercontent.com/Peppeppa/bootstrapper/main/install.sh | bash"
 
 MANAGED_DIRECTORIES=(
   "$HOME/repos/peppeppa"
@@ -49,6 +52,68 @@ read_list() {
     -e 's/[[:space:]]*$//' \
     -e '/^$/d' \
     "$1"
+}
+
+# -----------------------------------------------------------------------------
+# Shell alias
+# -----------------------------------------------------------------------------
+
+get_shell_rc() {
+  case "$(basename "${SHELL:-}")" in
+  bash)
+    echo "$HOME/.bashrc"
+    ;;
+  zsh)
+    echo "$HOME/.zshrc"
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
+handle_shell_alias() {
+  section "Shell alias"
+
+  local rc_file
+  local start_marker="# >>> bootstrapper update-config >>>"
+  local end_marker="# <<< bootstrapper update-config <<<"
+
+  if ! rc_file="$(get_shell_rc)"; then
+    echo "  - unsupported shell: ${SHELL:-unknown}"
+    return
+  fi
+
+  local alias_line
+  alias_line="alias $UPDATE_ALIAS_NAME='$UPDATE_ALIAS_COMMAND'"
+
+  if grep -Fqx "$alias_line" "$rc_file" 2>/dev/null; then
+    printf '  ✓ %s in %s\n' "$UPDATE_ALIAS_NAME" "$rc_file"
+    return
+  fi
+
+  if [[ "$MODE" != "apply" ]]; then
+    printf '  ✗ %s missing in %s\n' "$UPDATE_ALIAS_NAME" "$rc_file"
+    ((DEVIATIONS += 1))
+    return
+  fi
+
+  touch "$rc_file"
+
+  # Remove an older bootstrapper-managed version if present.
+  sed -i \
+    "/^${start_marker}$/,/^${end_marker}$/d" \
+    "$rc_file"
+
+  cat >>"$rc_file" <<EOF
+
+$start_marker
+$alias_line
+$end_marker
+EOF
+
+  printf '  ✓ added %s to %s\n' "$UPDATE_ALIAS_NAME" "$rc_file"
+  ((CHANGES += 1))
 }
 
 # -----------------------------------------------------------------------------
@@ -122,6 +187,47 @@ handle_packages() {
   echo
   printf '  → installing %s\n' "${missing[*]}"
   sudo pacman -S --needed --noconfirm "${missing[@]}"
+  ((CHANGES += ${#missing[@]}))
+}
+
+handle_aur_packages() {
+  section "AUR packages"
+
+  [[ -f "$AUR_PACKAGES_FILE" ]] || return
+
+  if ! command -v yay >/dev/null 2>&1; then
+    echo "  ! yay not installed"
+    [[ "$MODE" == "apply" ]] || ((DEVIATIONS += 1))
+    return 1
+  fi
+
+  local packages=()
+  local missing=()
+  local package
+
+  mapfile -t packages < <(read_list "$AUR_PACKAGES_FILE")
+
+  for package in "${packages[@]}"; do
+    if pacman -Q "$package" >/dev/null 2>&1; then
+      printf '  ✓ %s\n' "$package"
+    else
+      printf '  ✗ %s\n' "$package"
+      missing+=("$package")
+    fi
+  done
+
+  ((${#missing[@]} == 0)) && return
+
+  if [[ "$MODE" != "apply" ]]; then
+    ((DEVIATIONS += ${#missing[@]}))
+    return
+  fi
+
+  echo
+  printf '  → installing AUR: %s\n' "${missing[*]}"
+
+  yay -S --needed --noconfirm "${missing[@]}"
+
   ((CHANGES += ${#missing[@]}))
 }
 
@@ -439,6 +545,8 @@ reload_hyprland() {
 handle_directories
 ensure_pacman_databases
 handle_packages
+handle_aur_packages
+handle_shell_alias
 handle_bitwarden_cli
 handle_private_repos
 handle_dotfiles
