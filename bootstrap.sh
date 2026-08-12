@@ -73,6 +73,18 @@ handle_directories() {
   done
 }
 
+ensure_pacman_databases() {
+  if [[ -f /var/lib/pacman/sync/core.db ]] &&
+    [[ -f /var/lib/pacman/sync/extra.db ]]; then
+    return
+  fi
+
+  section "System update"
+
+  echo "  → initializing package databases"
+  sudo pacman -Syu --noconfirm
+}
+
 # -----------------------------------------------------------------------------
 # Packages
 # -----------------------------------------------------------------------------
@@ -203,31 +215,36 @@ ensure_bitwarden_agent() {
   fi
 
   echo
-  echo "Open Bitwarden Desktop and:"
-  echo "  1. select your self-hosted server"
-  echo "  2. log in / unlock the vault"
-  echo "  3. enable Settings -> SSH Agent"
-  echo "  4. make your SSH key available to the agent"
+  echo "Configure Bitwarden Desktop once:"
   echo
+  echo "  [x] Show tray icon"
+  echo "  [x] Close to tray"
+  echo "  [x] Start to tray"
+  echo "  [x] Start automatically on login"
+  echo "  [x] Vault timeout: On restart"
+  echo "  [x] Vault timeout action: Lock"
+  echo "  [x] Enable SSH agent"
+  echo "  [x] Ask for authorization: Never"
+  echo
+  echo "Then log in / unlock your vault."
+  echo
+  echo "Waiting for Bitwarden SSH Agent..."
 
-  local answer
+  local waited=0
 
   until bitwarden_agent_ready; do
-    printf 'Press Enter when ready, or q to abort: ' >/dev/tty
-    IFS= read -r answer </dev/tty
+    sleep 2
+    ((waited += 2))
 
-    if [[ "${answer,,}" == "q" ]]; then
-      echo "  ! SSH Agent setup aborted"
-      return 1
+    if ((waited % 30 == 0)); then
+      echo "  ... still waiting - unlock Bitwarden if necessary"
     fi
-
-    bitwarden_agent_ready || echo "  ✗ agent not ready yet"
   done
 
   export SSH_AUTH_SOCK="$BITWARDEN_SOCKET"
-  echo "  ✓ ready"
-}
 
+  echo "  ✓ Bitwarden SSH Agent ready"
+}
 # -----------------------------------------------------------------------------
 # Private repositories
 # -----------------------------------------------------------------------------
@@ -420,6 +437,7 @@ reload_hyprland() {
 # -----------------------------------------------------------------------------
 
 handle_directories
+ensure_pacman_databases
 handle_packages
 handle_bitwarden_cli
 handle_private_repos
